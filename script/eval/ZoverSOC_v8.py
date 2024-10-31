@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug 22 19:16:51 2024
+Created on Mon Oct 21 10:31:11 2024
 
 @author: Jaehyun
-Updated on Fri Aug 23 2024 to include Phase of Z plotting option and figure dimension control
 """
+
 
 import pandas as pd
 from tkinter import Tk, Label, Button, Listbox, EXTENDED, Checkbutton, StringVar, OptionMenu, Entry
@@ -23,6 +23,10 @@ class ZoverSOCPlotter:
         self.plot_type = StringVar(value="|Z| (ohms)")  # Default to |Z| (ohms)
         self.figure_width = StringVar(value="12")  # Default width
         self.figure_height = StringVar(value="8")  # Default height
+        self.soc_dch_start = StringVar(value="100")  # Default start SOC for discharge
+        self.soc_dch_end = StringVar(value="0")     # Default end SOC for discharge
+        self.soc_ch_start = StringVar(value="5")    # Default start SOC for charge
+        self.soc_ch_end = StringVar(value="100")    # Default end SOC for charge
         self.setup_gui()
 
     def setup_gui(self):
@@ -31,6 +35,22 @@ class ZoverSOCPlotter:
 
         self.listbox = Listbox(self.root, selectmode=EXTENDED)
         self.listbox.pack()
+
+        # Add input fields for SOC range in discharge direction
+        dch_frame = Label(self.root, text="Discharge SOC Range (Start - End):")
+        dch_frame.pack()
+        dch_start_entry = Entry(self.root, textvariable=self.soc_dch_start, width=5)
+        dch_start_entry.pack(side="left")
+        dch_end_entry = Entry(self.root, textvariable=self.soc_dch_end, width=5)
+        dch_end_entry.pack(side="left")
+
+        # Add input fields for SOC range in charge direction
+        ch_frame = Label(self.root, text="Charge SOC Range (Start - End):")
+        ch_frame.pack()
+        ch_start_entry = Entry(self.root, textvariable=self.soc_ch_start, width=5)
+        ch_start_entry.pack(side="left")
+        ch_end_entry = Entry(self.root, textvariable=self.soc_ch_end, width=5)
+        ch_end_entry.pack(side="left")
 
         self.show_legend_checkbox = Checkbutton(
             self.root, 
@@ -91,23 +111,13 @@ class ZoverSOCPlotter:
     def process_data(self):
         non_zero_segments = self.df[self.df['Frequency (Hz)'] != 0]['Segment'].unique()
         soc_values = list(range(100, -1, -5)) + list(range(5, 101, 5))
-        # soc_values = list(range(100, 14, -5)) + list(range(5, 101, 5))
         direction_values = (['dch'] * (len(range(100, 0, -5))) + ['empty'] + ['ch'] * (len(range(5, 101, 5))))
-        # direction_values = (['dch'] * (len(range(100, 14, -5))) + ['ch'] * (len(range(5, 101, 5))))
+        
         segment_to_soc = {segment: soc for segment, soc in zip(non_zero_segments, soc_values)}
         segment_to_direction = {segment: direction for segment, direction in zip(non_zero_segments, direction_values)}
         
         self.df['SOC'] = self.df['Segment'].map(segment_to_soc)
         self.df['direction'] = self.df['Segment'].map(segment_to_direction)
-        
-        # Print alignment of segments to SOC and direction
-        for segment in non_zero_segments:
-            soc = segment_to_soc.get(segment, "Unknown")  # Set a default value for SOC
-            direction = segment_to_direction.get(segment, "Unknown")  # Set a default value for direction
-            if direction != "Unknown":
-                print(f"{direction.capitalize()} direction - {soc}%: Segment No. {segment}")
-            else:
-                print(f"Segment No. {segment} has no associated direction or SOC value")
 
     def populate_frequency_list(self):
         unique_frequencies = sorted(self.df[self.df['Frequency (Hz)'] != 0]['Frequency (Hz)'].unique())
@@ -119,9 +129,13 @@ class ZoverSOCPlotter:
         selected_frequencies = [float(self.listbox.get(i)) for i in selected_indices]
         width = float(self.figure_width.get())
         height = float(self.figure_height.get())
-        print(f"Plotting {self.plot_type.get()} with show_legend: {self.show_legend}, use_simple_legend: {self.use_simple_legend}")
-        print(f"Figure dimensions: {width} x {height}")
-        self.plot_z_over_soc(selected_frequencies, self.show_legend, self.use_simple_legend, self.plot_type.get(), width, height)
+        soc_dch_start = int(self.soc_dch_start.get())
+        soc_dch_end = int(self.soc_dch_end.get())
+        soc_ch_start = int(self.soc_ch_start.get())
+        soc_ch_end = int(self.soc_ch_end.get())
+
+        # Filter data based on user-defined SOC ranges
+        self.plot_z_over_soc(selected_frequencies, soc_dch_start, soc_dch_end, soc_ch_start, soc_ch_end, self.show_legend, self.use_simple_legend, self.plot_type.get(), width, height)
 
     @staticmethod
     def format_frequency(freq):
@@ -135,26 +149,28 @@ class ZoverSOCPlotter:
                 formatted += '0'
         return f"{formatted} Hz"
 
-    def plot_z_over_soc(self, selected_frequencies, show_legend, use_simple_legend, plot_type, width, height):
+    def plot_z_over_soc(self, selected_frequencies, soc_dch_start, soc_dch_end, soc_ch_start, soc_ch_end, show_legend, use_simple_legend, plot_type, width, height):
         colors = np.linspace(0, 1, len(selected_frequencies))
         colormap = plt.get_cmap('coolwarm')
-        sorted_soc_values = sorted(list(range(100, -1, -5)) + list(range(5, 101, 5)))
-        
+
         plt.figure(figsize=(width, height))
 
-        lowest_freq = min(selected_frequencies)
-        highest_freq = max(selected_frequencies)
+        # Filter data for discharge based on SOC range
+        df_dch = self.df[(self.df['direction'] == 'dch') & (self.df['SOC'] <= soc_dch_start) & (self.df['SOC'] >= soc_dch_end)]
 
-        # Plot data
+        # Filter data for charge based on SOC range
+        df_ch = self.df[(self.df['direction'] == 'ch') & (self.df['SOC'] >= soc_ch_start) & (self.df['SOC'] <= soc_ch_end)]
+
         for idx, frequency in enumerate(selected_frequencies):
-            df_freq = self.df[(self.df['Frequency (Hz)'] == frequency) & self.df['SOC'].notna()]
             color = colormap(colors[idx])
-            
-            df_dch = df_freq[df_freq['direction'] == 'dch']
-            plt.plot(df_dch['SOC'], df_dch[plot_type], linestyle='-', marker='o', color=color)
-            
-            df_ch = df_freq[df_freq['direction'] == 'ch']
-            plt.plot(df_ch['SOC'], df_ch[plot_type], linestyle='--', marker='s', color=color)
+
+            # Plot discharge data
+            df_dch_freq = df_dch[df_dch['Frequency (Hz)'] == frequency]
+            plt.plot(df_dch_freq['SOC'], df_dch_freq[plot_type], linestyle='-', marker='o', color=color)
+
+            # Plot charge data
+            df_ch_freq = df_ch[df_ch['Frequency (Hz)'] == frequency]
+            plt.plot(df_ch_freq['SOC'], df_ch_freq[plot_type], linestyle='--', marker='s', color=color)
 
         plt.title(f'{plot_type} vs SOC for Selected Frequencies')
         plt.xlabel('SOC (%)')
