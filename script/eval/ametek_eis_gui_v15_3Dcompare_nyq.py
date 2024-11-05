@@ -66,10 +66,10 @@ class PlotApp:
         
     def generate_segment_labels(self):
         labels = []
-        # Discharge cycle (100% to 0%)
-        for i in range(20, 0, -1):
+        # Discharge cycle (100% to 15%)
+        for i in range(20, 2, -1):
             labels.append(f"d_{i*5}%")
-        labels.append("0%")  # Fully discharged state
+      #  labels.append("0%")  # Fully discharged state
         # Charge cycle (5% to 100%)
         for i in range(1, 21):
             labels.append(f"c_{i*5}%")

@@ -1,0 +1,9 @@
+[submodule "pyDRTtools"]
+	path = pyDRTtools
+	url = https://github.com/jay-master/pyDRTtools.git
+[submodule "DRTtools"]
+	path = DRTtools
+	url = https://github.com/jay-master/DRTtools.git
+[submodule "kramers-kronig"]
+	path = kramers-kronig
+	url = https://github.com/jay-master/kramers-kronig.git

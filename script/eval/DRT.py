@@ -16,6 +16,7 @@ import importlib
 from numpy import loadtxt
 from matplotlib import gridspec # for the contour plots
 from cvxopt import matrix, solvers
+from tkinter.filedialog import askopenfilename
 
 # pyDRTtools' modules
 import pyDRTtools
@@ -31,15 +32,19 @@ plt.rc('ytick', labelsize=15)
 # matplotlib inline
 
 ## Load the data
-df = pd.read_csv('E:/Projekte/vertraulich/CMBlu/meas_data/15th_new_cell_standard_45grad/ch1/15th_2nd_EIS&CCCV_nach_eis_45grad - Kopie.csv')
+file_path = askopenfilename(title="Select CSV files", filetypes=[("CSV files", "*.csv")])
+df = pd.read_csv(file_path)
 N_freqs = df.shape[0]
-freq_vec = np.flip(df['Frequency (Hz)'].values)
-Z_exp = np.flip(df['Zre (ohms)'].values + 1j*df['Zim (ohms)'].values)
+# freq_vec = np.flip(df['Frequency (Hz)'].values)
+# Z_exp = np.flip(df['Zre (ohms)'].values + 1j*df['Zim (ohms)'].values)
+freq_vec = np.flip(df['Freq'].values)
+Z_exp = np.flip(df['Real'].values + 1j*df['Imag'].values)
 
 ## Define the range of timescales
-N_taus = 64
-log_tau_min = -4  
-log_tau_max = 4   
+N_taus = 81
+# N_taus = 64 # for AMETEK
+log_tau_min = -6  
+log_tau_max = 2   
 tau_vec = np.logspace(log_tau_min, log_tau_max, num = N_taus, endpoint=True)
 log_tau_vec = np.log(tau_vec)
 
