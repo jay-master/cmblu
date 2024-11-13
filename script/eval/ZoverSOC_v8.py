@@ -24,7 +24,7 @@ class ZoverSOCPlotter:
         self.figure_width = StringVar(value="12")  # Default width
         self.figure_height = StringVar(value="8")  # Default height
         self.soc_dch_start = StringVar(value="100")  # Default start SOC for discharge
-        self.soc_dch_end = StringVar(value="0")     # Default end SOC for discharge
+        self.soc_dch_end = StringVar(value="15")     # Default end SOC for discharge
         self.soc_ch_start = StringVar(value="5")    # Default start SOC for charge
         self.soc_ch_end = StringVar(value="100")    # Default end SOC for charge
         self.setup_gui()

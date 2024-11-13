@@ -7,3 +7,6 @@
 [submodule "kramers-kronig"]
 	path = kramers-kronig
 	url = https://github.com/jay-master/kramers-kronig.git
+[submodule "DearEIS"]
+	path = DearEIS
+	url = https://github.com/jay-master/DearEIS.git
